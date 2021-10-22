@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="fee">
+
+    <select id = "selectRsFee" resultType = "com.konai.batch.core.vo.TblClearingAggrDVo">
+		<include refid = "common.commonPagingHead"/>
+	
+			SELECT
+				a.clr_dt
+				, b.stl_dt
+				, a.asp_id
+				, '100120024' AS clr_svc_no
+				, SUM( DECODE(a.prcs_cd, '200800', DECODE(a.mti, '0100', -1, 1), DECODE(a.mti, '0100', 1, -1)) ) AS tr_cnt
+				, SUM( DECODE(a.prcs_cd, '200800', DECODE(a.mti, '0100', -1, 1), DECODE(a.mti, '0100', 1, -1)) * a.tr_amt ) AS tr_amt
+				, SUM( DECODE(a.prcs_cd, '200800', DECODE(a.mti, '0100', -1, 1), DECODE(a.mti, '0100', 1, -1)) * b.fee_sup_amt ) AS fee_sup_amt
+				, SUM( DECODE(a.prcs_cd, '200800', DECODE(a.mti, '0100', -1, 1), DECODE(a.mti, '0100', 1, -1)) * b.fee_vat_amt ) AS fee_vat_amt
+				, SUM( DECODE(a.prcs_cd, '200800', DECODE(a.mti, '0100', -1, 1), DECODE(a.mti, '0100', 1, -1)) * b.fee_amt ) AS fee_amt
+			FROM
+				tbl_109 a, tbl_110 b
+			WHERE
+				a.clr_dt = #{clrDt}
+				AND a.clr_dt = b.clr_dt
+				AND a.clr_seq_no = b.clr_seq_no
+				AND b.clr_item_id = '10313019'
+			GROUP BY
+				a.clr_dt
+				, b.stl_dt
+				, a.asp_id
+	  		HAVING
+				SUM( DECODE(a.prcs_cd, '200800', DECODE(a.mti, '0100', -1, 1), DECODE(a.mti, '0100', 1, -1)) * b.fee_amt ) != 0
+			ORDER BY
+				a.clr_dt
+				, b.stl_dt
+				, a.asp_id
+		
+		<include refid = "common.commonPagingTail"/>
+	</select>
+
+</mapper>

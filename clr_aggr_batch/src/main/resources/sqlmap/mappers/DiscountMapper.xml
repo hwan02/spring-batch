@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="disc">
+
+    <select id = "selectDiscount" resultType = "com.konai.batch.core.vo.TblClearingAggrDVo">
+		<include refid = "common.commonPagingHead"/>
+	
+			SELECT
+				t109.clr_dt
+				, t109.stl_dt
+				, t109.asp_id
+				, CASE
+                    WHEN t111.disc_chg_type = '10' THEN '100110006'
+                    WHEN t111.disc_chg_type = '20' THEN '100110003'
+                    ELSE '100110007'
+                END  AS clr_svc_no
+				, SUM( DECODE( t109.prcs_cd, '200800', DECODE( t109.mti, '0100', -1, 1), DECODE( t109.mti, '0100', 1, -1) ) ) AS tr_cnt
+				, SUM( DECODE( t109.prcs_cd, '200800', DECODE( t109.mti, '0100', -1, 1), DECODE( t109.mti, '0100', 1, -1) ) * t109.tr_amt ) AS tr_amt
+				, SUM( DECODE( t109.prcs_cd, '200800', DECODE( t109.mti, '0100', -1, 1), DECODE( t109.mti, '0100', 1, -1) ) * NVL( t111.disc_amt, 0) ) AS fee_amt
+			FROM
+				tbl_109 t109, tbl_111 t111
+			WHERE
+				t109.clr_dt = #{clrDt}
+				AND t111.clr_dt = t109.clr_dt AND t111.clr_seq_no = t109.clr_seq_no
+				AND t109.prcs_cd IN ('000000', '200800', '004000', '000800')
+			GROUP BY
+				t109.clr_dt
+				, t109.stl_dt
+				, t109.asp_id
+				, t111.disc_chg_type
+	  		HAVING
+				SUM( DECODE( t109.prcs_cd, '200800', DECODE( t109.mti, '0100', -1, 1), DECODE( t109.mti, '0100', 1, -1) ) * NVL( t111.disc_amt, 0) ) != 0
+			ORDER BY
+				t109.clr_dt
+				, t109.stl_dt
+				, t109.asp_id
+				, t111.disc_chg_type
+		
+		<include refid = "common.commonPagingTail"/>
+	</select>
+
+</mapper>

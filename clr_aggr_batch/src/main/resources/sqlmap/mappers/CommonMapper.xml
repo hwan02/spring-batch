@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="common">
+
+	<sql id = "commonPagingHead">
+		SELECT *
+			FROM (
+				SELECT ROWNUM AS rnum, t.*
+					FROM (
+	</sql>
+
+	<sql id = "commonPagingTail">
+				) t
+				WHERE ( #{_skiprows} + #{_pagesize} ) >= ROWNUM
+			) tt
+		WHERE tt.rnum > #{_skiprows}
+	</sql>
+
+	<delete id="deleteTable" parameterType="hashMap">
+		DELETE FROM
+			tbl_clearing_aggr_d
+		WHERE
+			clr_dt = #{clrDt}
+			<if test="clrSvcNoList != null">
+				AND clr_svc_no IN
+				<foreach collection="clrSvcNoList" item="item" open="(" close=")" separator=",">
+					#{item}
+				</foreach>
+			</if>
+	</delete>
+	
+	<select id = "getEveryDay" parameterType = "hashMap" resultType = "String">
+		SELECT
+			TO_CHAR(MIN(cal_date), 'yyyyMMdd') AS cal_date
+		FROM
+			clr.v_workingday
+		WHERE
+			cal_date >= TO_DATE(#{date}, 'yyyyMMdd') + #{offset}
+			AND player_id = #{aspId}
+	</select>
+	
+	<select id = "getWorkingDay" parameterType = "hashMap" resultType = "String">
+		SELECT
+			TO_CHAR(MAX(cal_date), 'yyyyMMdd') AS cal_date
+		FROM (
+			SELECT
+				*
+			FROM
+				clr.v_workingday
+			WHERE
+				cal_date > TO_DATE(#{date}, 'yyyyMMdd')
+				AND player_id = #{aspId}
+			ORDER BY
+				cal_date
+		)
+		WHERE
+			ROWNUM <![CDATA[ <= ]]> #{offset}
+	</select>
+	
+	<select id = "getSpecificDay" parameterType = "hashMap" resultType = "String">
+		SELECT
+			TO_CHAR(MIN(cal_date), 'yyyyMMdd') AS cal_date
+		
+		FROM
+			clr.v_workingday
+			
+		WHERE
+			cal_date >= TO_DATE(#{date}, 'yyyyMMdd') + #{offset}
+			AND player_id = #{aspId}
+	</select>
+	
+	<select id = "selectAggrCode" parameterType = "hashMap" resultType = "com.konai.batch.core.vo.TblAggrCodeVo">
+		SELECT
+			id
+			, asp_id
+			, mbr_cd
+			, mbr_nm
+			, clr_kind_cd
+			, clr_svc_no
+			, clr_svc_nm
+			, maj_cd
+			, maj_nm
+			, mid_cd
+			, mid_nm
+			, min_cd
+			, min_nm
+			, fee_type
+			, fee_unit
+			, tax_yn
+			, vat_yn
+			, round_cd
+			, stl_gen_cd
+			, description
+			, etc
+			, use_yn
+			, reg_dt
+			, reg_id
+			, upd_dt
+			, upd_id
+		FROM
+			tbl_aggr_code
+		WHERE
+			clr_svc_no = #{clrSvcNo}
+			AND asp_id = #{aspId}
+	</select>
+	
+	<select id = "selectAggrCodeList" parameterType = "hashMap" resultType = "com.konai.batch.core.vo.TblAggrCodeVo">
+		SELECT
+			id
+			, asp_id
+			, mbr_cd
+			, mbr_nm
+			, clr_kind_cd
+			, clr_svc_no
+			, clr_svc_nm
+			, maj_cd
+			, maj_nm
+			, mid_cd
+			, mid_nm
+			, min_cd
+			, min_nm
+			, fee_type
+			, fee_unit
+			, tax_yn
+			, vat_yn
+			, round_cd
+			, stl_gen_cd
+			, description
+			, etc
+			, use_yn
+			, reg_dt
+			, reg_id
+			, upd_dt
+			, upd_id
+		FROM
+			tbl_aggr_code
+		WHERE
+			clr_svc_no = #{clrSvcNo}
+	</select>
+	
+	<insert id = "insertList" parameterType = "com.konai.batch.core.vo.TblClearingAggrDVo">
+		<selectKey keyProperty="clrSeqNo" resultType="com.konai.batch.core.vo.TblClearingAggrDVo" order="BEFORE" >
+			SELECT seq_clearing_aggr_d.NEXTVAL as clrSeqNo FROM DUAL
+		</selectKey>
+		
+		INSERT INTO tbl_clearing_aggr_d (
+			clr_dt
+			, clr_seq_no
+			, stl_dt
+			, asp_id
+			, mbr_cd
+			, clr_svc_no
+			, clr_svc_nm
+			, maj_cd
+			, maj_nm
+			, mid_cd
+			, mid_nm
+			, min_cd
+			, min_nm
+			, fee_type
+			, fee_rate
+			, fee_unit_amt
+			, vat_yn
+			, tax_yn
+			, round_cd
+			, stl_gen_cd
+			, tr_cnt
+			, tr_amt
+			, fee_sup_amt
+			, fee_vat_amt
+			, fee_amt
+			, requester
+			, etc
+			, reg_dt
+			, reg_id
+			, upd_dt
+			, upd_id
+		) VALUES (
+			#{clrDt}
+			, #{clrSeqNo}
+			, #{stlDt}
+			, #{aspId}
+			, #{mbrCd}
+			, #{clrSvcNo}
+			, #{clrSvcNm}
+			, #{majCd}
+			, #{majNm}
+			, #{midCd}
+			, #{midNm}
+			, #{minCd}
+			, #{minNm}
+			, #{feeType}
+			, #{feeRate}
+			, #{feeUnitAmt}
+			, #{vatYn}
+			, #{taxYn}
+			, #{roundCd}
+			, #{stlGenCd}
+			, #{trCnt}
+			, #{trAmt}
+			, #{feeSupAmt}
+			, #{feeVatAmt}
+			, #{feeAmt}
+			, #{requester}
+			, #{etc}
+			, SYSDATE
+			, 'clr_aggr_batch'
+			, SYSDATE
+			, 'clr_aggr_batch'
+		)
+	</insert>
+
+
+</mapper>

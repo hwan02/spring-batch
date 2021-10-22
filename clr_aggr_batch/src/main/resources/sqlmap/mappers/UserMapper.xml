@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="map">
+
+    <select id = "selectUserRegistration" resultType = "com.konai.batch.core.vo.TblClearingAggrDVo">
+		<include refid = "common.commonPagingHead"/>
+
+			SELECT
+				TO_CHAR(first_join_dt, 'yyyyMMdd') AS clr_dt
+				, asp_id
+				, '200250251' AS clr_svc_no
+				, COUNT(*) AS tr_cnt
+		
+			FROM
+				map.wallet_user
+		
+			WHERE
+				1 = 1
+				AND first_join_dt >= TO_DATE(#{clrDt}, 'yyyyMMdd')
+				AND first_join_dt <![CDATA[ < ]]> (TO_DATE(#{clrDt}, 'yyyyMMdd') + 1)
+	  	
+			GROUP BY
+				TO_CHAR(first_join_dt, 'yyyyMMdd')
+				, asp_id
+			ORDER BY
+				TO_CHAR(first_join_dt, 'yyyyMMdd')
+				, asp_id
+		
+		<include refid = "common.commonPagingTail"/>
+	</select>
+</mapper>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="card">
+
+    <select id = "selectCamsIssueList" resultType = "com.konai.batch.core.vo.TblClearingAggrDVo">
+        WITH tbl_clr_svc_code AS (
+                        SELECT '200900901' AS clr_svc_no, '카드발급수수료' AS clr_svc_nm FROM dual
+            UNION ALL   SELECT '200230227' AS clr_svc_no, '기명화수수료' AS clr_svc_nm FROM dual
+        )
+        
+        <include refid = "common.commonPagingHead"/>
+
+            SELECT
+                b.clr_dt
+                , b.asp_id
+                , a.clr_svc_no
+                , COUNT(*) AS tr_cnt
+        
+            FROM
+                tbl_clr_svc_code a
+        
+            LEFT JOIN
+                tbl_cams_file b
+            ON( 1 = 1 )
+        
+            WHERE
+                b.clr_dt = #{clrDt}
+                AND b.prefix = 'CAMS'
+                AND b.tran_type = '01'
+        
+            GROUP BY
+                b.clr_dt
+                , b.asp_id
+                , a.clr_svc_no
+        
+            ORDER BY
+                b.clr_dt
+                , b.asp_id
+                , a.clr_svc_no
+		
+		<include refid = "common.commonPagingTail"/>
+	</select>
+</mapper>
