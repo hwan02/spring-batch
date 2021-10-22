@@ -1,0 +1,125 @@
+#!/bin/sh
+
+#DT=`date -d "$1 1day $ago" +"%Y%m%d"`
+
+source ~/.bash_profile
+
+defaultParams(){
+        STL_DT=`date +"%Y%m%d"`
+        CLR_DT=`date -d "$TO_DAY 1 day ago" +"%Y%m%d"`
+}
+
+if [ $# -ne 2 ]
+then
+        defaultParams;
+else
+        CLR_DT=$1
+        STL_DT=$2
+fi
+
+pgmStatus()
+{
+        #process_name=$1
+        #status=$2
+
+        if [ $2 -eq 0 ]
+        then
+
+
+                printf "$yellow%-30s : $green[OK] $normal\n" "$1"
+        else
+
+                printf "$red%-30s : $red[Fail] status[$2] $normal\n" "$1"
+                echo -e $out_line
+                status=$2
+                exit $status
+        fi
+
+}
+
+
+#CLR_DT=`date -d "$TO_DAY 1 day ago" +"%Y%m%d"`
+##STL_DT=`date +"%Y%m%d"
+#DT=`date +"%Y%m%d"`
+/home/clr/bin/run_clr_ext_tran.sh  $CLR_DT $STL_DT PAYCO &> /dev/null
+pgmStatus "clr_ext_tran $CLR_DT $STL_DT PAYCO" $?
+
+USER=payco_kopc02
+SERVER_IP=10.30.210.154
+PW=Qwer%678
+SRC_DIR=/nas/konamoney/clr/payco/kopc02/gathering
+FILE=KOPC02$STL_DT
+TARGET_DIR=/home/payco_kopc02/kopc02
+
+cd $SRC_DIR
+#echo `pwd`
+#echo $FILE $USER@$SERVER_IP:$TARGET_DIR
+
+expect <<EOF
+set timeout 1
+spawn scp -P 22311 $FILE $USER@$SERVER_IP:$TARGET_DIR
+
+expect "password:"
+send "$PW\r"
+expect eof
+EOF
+
+
+-----------------------------------------------------
+#!/bin/sh
+LANG=C
+SERVICE_NAME=clr_ext_tran
+BATCH_HOME=/home/clr/batch/$SERVICE_NAME
+CONFIG_HOME=/home/clr/cfg/$SERVICE_NAME
+BATCH_JAR=$BATCH_HOME/$SERVICE_NAME.jar
+
+GCDIR=$HOME/gclogs
+GCLOG=$GCDIR/$SERVICE_NAME-gc.log
+
+DATE=$1
+TO_DAY=$2
+DECIDER=$3
+
+JAVA_HOME=/home/clr/jdk
+JAVA_OPTS="-D$SERVICE_NAME"
+JAVA_OPTS="$JAVA_OPTS -Dlogging.config=$CONFIG_HOME/logback.xml"
+JAVA_OPTS="$JAVA_OPTS -Dspring.config.location=$CONFIG_HOME/application.properties,$CONFIG_HOME/point-tran.yml,$CONFIG_HOME/exclude-point-policy.yml,$CONFIG_HOME/test.yml"
+JAVA_OPTS="$JAVA_OPTS -Xms1024m -Xmx2048m -XX:NewSize=256m -XX:MaxNewSize=256m"
+JAVA_OPTS="$JAVA_OPTS -XX:SurvivorRatio=8"
+JAVA_OPTS="$JAVA_OPTS -verbose:gc -Xloggc:$GCLOG"
+JAVA_OPTS="$JAVA_OPTS -XX:-UseParallelGC"
+JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDetails"
+JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCTimeStamps"
+JAVA_OPTS="$JAVA_OPTS -XX:+PrintHeapAtGC"
+JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
+JAVA_OPTS="$JAVA_OPTS -Duser.timezone=Asia/Seoul"
+JAVA_OPTS="$JAVA_OPTS -Djob_type=$DECIDER"
+
+export SERVICE_NAME BATCH_HOME CONFIG_HOME BATCH_JAR GCDIR GCLOG JAVA_HOME JAVA_OPTS
+
+#CUR_DATE=`date +"%Y%m%d"`
+#echo today $CUR_DATE
+#DATE=`date -d "$CUR_DATE 1 day ago" +"%Y%m%d"`
+
+errorParams(){
+        echo "$0 Required Parameter missing. Required Parameters: #1. clrDt[yyyyMMdd](today - 1). "
+}
+
+defaultParams(){
+        echo "$0 Execute Date[$TO_DAY]. Set Default Parameters: clrDt[$DATE]. "
+}
+
+if [ $# -ne 3 ]
+  then
+    errorParams;
+
+    TO_DAY=`date +"%Y%m%d"`
+    DATE=`date -d "$TO_DAY 1 day ago" +"%Y%m%d"`
+    DECIDER="UNKNOWN"
+
+    defaultParams;
+fi
+
+echo "[$SERVICE_NAME] ext aggregate and make file CLEAR_DATE[$DATE] STL_DT[$TO_DAY]  DECIDER[$DECIDER]"
+
+java $JAVA_OPTS -jar $BATCH_JAR apvDt=$DATE stlDt=$TO_DAY decider=$DECIDER
